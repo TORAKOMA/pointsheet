@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>ポイ活管理シート</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', 'Meiryo UI', sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background-color: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #1e88e5;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .card {
+            background: white;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        h2 {
+            color: #0d47a1;
+            border-bottom: 2px solid #bbdefb;
+            padding-bottom: 5px;
+            margin-top: 0;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        th, td {
+            padding: 10px;
+            text-align: left;
+            border: 1px solid #e0e0e0;
+        }
+        th {
+            background-color: #e3f2fd;
+        }
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        .button {
+            background-color: #1e88e5;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-right: 8px;
+        }
+        .button:hover {
+            background-color: #1565c0;
+        }
+        .summary-box {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .summary-item {
+            background: linear-gradient(135deg, #42a5f5, #1976d2);
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+        .summary-item h3 {
+            margin-top: 0;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+        .summary-item p {
+            font-size: 24px;
+            font-weight: bold;
+            margin: 0;
+        }
+        .tabs {
+            display: flex;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #bbdefb;
+        }
+        .tab {
+            padding: 10px 20px;
+            cursor: pointer;
+            background-color: #e3f2fd;
+            margin-right: 5px;
+            border-radius: 5px 5px 0 0;
+        }
+        .tab.active {
+            background-color: #1e88e5;
+            color: white;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .chart-container {
+            height: 300px;
+            margin-bottom: 20px;
+        }
+        .flex-row {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .flex-column {
+            flex: 1;
+        }
+        @media (max-width: 768px) {
+            .flex-row {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>ポイ活管理シート</h1>
+        
+        <!-- サマリーダッシュボード -->
+        <div class="card">
+            <h2>ポイント概要</h2>
+            <div class="summary-box">
+                <div class="summary-item">
+                    <h3>累計獲得ポイント</h3>
+                    <p id="total-points">12,450</p>
+                </div>
+                <div class="summary-item">
+                    <h3>今月獲得ポイント</h3>
+                    <p id="month-points">1,230</p>
+                </div>
+                <div class="summary-item">
+                    <h3>平均月間ポイント</h3>
+                    <p id="avg-points">1,038</p>
+                </div>
+                <div class="summary-item">
+                    <h3>ポイント残高</h3>
+                    <p id="remaining-points">5,280</p>
+                </div>
+            </div>
+            
+            <div class="chart-container" id="points-chart">
+                <!-- チャートがここに表示されます -->
+                <svg id="chart-svg" width="100%" height="100%">
+                    <rect x="0" y="0" width="100%" height="100%" fill="#f5f5f5"></rect>
+                    <text x="50%" y="50%" text-anchor="middle" dominant-baseline="middle" font-size="16px">ポイント推移のグラフが表示されます</text>
+                </svg>
+            </div>
+        </div>
+        
+        <!-- タブ付きのコンテンツエリア -->
+        <div class="tabs">
+            <div class="tab active" onclick="switchTab('tab1')">ポイント記録</div>
+            <div class="tab" onclick="switchTab('tab2')">サービス別分析</div>
+            <div class="tab" onclick="switchTab('tab3')">ポイント交換</div>
+        </div>
+        
+        <!-- タブ1: ポイント記録 -->
+        <div id="tab1" class="tab-content active">
+            <div class="card">
+                <h2>ポイント記録</h2>
+                <div class="flex-row">
+                    <div class="flex-column">
+                        <button class="button" onclick="addNewRow()">新規追加</button>
+                        <button class="button" onclick="exportData()">エクスポート</button>
+                    </div>
+                    <div class="flex-column">
+                        <input type="text" id="search" placeholder="検索..." style="padding: 8px; width: 100%;">
+                    </div>
+                </div>
+                
+                <table id="points-table">
+                    <thead>
+                        <tr>
+                            <th>日付</th>
+                            <th>サービス</th>
+                            <th>獲得方法</th>
+                            <th>獲得ポイント</th>
+                            <th>特記事項</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>2025/03/01</td>
+                            <td>楽天ポイント</td>
+                            <td>SPU</td>
+                            <td>320</td>
+                            <td>SPU 3倍デー</td>
+                            <td>
+                                <button class="button" onclick="editRow(this)">編集</button>
+                                <button class="button" onclick="deleteRow(this)">削除</button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>2025/03/05</td>
+                            <td>dポイント</td>
+                            <td>買い物</td>
+                            <td>150</td>
+                            <td>スーパー買い物</td>
+                            <td>
+                                <button class="button" onclick="editRow(this)">編集</button>
+                                <button class="button" onclick="deleteRow(this)">削除</button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>2025/03/10</td>
+                            <td>PayPayポイント</td>
+                            <td>キャンペーン</td>
+                            <td>500</td>
+                            <td>春の特別キャンペーン</td>
+                            <td>
+                                <button class="button" onclick="editRow(this)">編集</button>
+                                <button class="button" onclick="deleteRow(this)">削除</button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <!-- タブ2: サービス別分析 -->
+        <div id="tab2" class="tab-content">
+            <div class="card">
+                <h2>サービス別ポイント分析</h2>
+                <div class="chart-container" id="service-chart">
+                    <!-- チャートがここに表示されます -->
+                    <svg id="service-svg" width="100%" height="100%">
+                        <rect x="0" y="0" width="100%" height="100%" fill="#f5f5f5"></rect>
+                        <text x="50%" y="50%" text-anchor="middle" dominant-baseline="middle" font-size="16px">サービス別ポイント分布のグラフが表示されます</text>
+                    </svg>
+                </div>
+                
+                <table id="service-table">
+                    <thead>
+                        <tr>
+                            <th>サービス名</th>
+                            <th>累計ポイント</th>
+                            <th>今月ポイント</th>
+                            <th>残高</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>楽天ポイント</td>
+                            <td>5,230</td>
+                            <td>520</td>
+                            <td>2,450</td>
+                        </tr>
+                        <tr>
+                            <td>dポイント</td>
+                            <td>3,120</td>
+                            <td>280</td>
+                            <td>1,200</td>
+                        </tr>
+                        <tr>
+                            <td>PayPayポイント</td>
+                            <td>2,800</td>
+                            <td>430</td>
+                            <td>1,630</td>
+                        </tr>
+                        <tr>
+                            <td>Tポイント</td>
+                            <td>1,300</td>
+                            <td>0</td>
+                            <td>0</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <!-- タブ3: ポイント交換 -->
+        <div id="tab3" class="tab-content">
+            <div class="card">
+                <h2>ポイント交換記録</h2>
+                <div class="flex-row">
+                    <div class="flex-column">
+                        <button class="button" onclick="addNewExchange()">新規交換記録</button>
+                    </div>
+                </div>
+                
+                <table id="exchange-table">
+                    <thead>
+                        <tr>
+                            <th>日付</th>
+                            <th>サービス</th>
+                            <th>交換先</th>
+                            <th>ポイント数</th>
+                            <th>交換レート</th>
+                            <th>特記事項</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>2025/02/15</td>
+                            <td>楽天ポイント</td>
+                            <td>楽天ペイ</td>
+                            <td>1,000</td>
+                            <td>1:1</td>
+                            <td>買い物に利用</td>
+                            <td>
+                                <button class="button" onclick="editExchange(this)">編集</button>
+                                <button class="button" onclick="deleteExchange(this)">削除</button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>2025/02/28</td>
+                            <td>PayPayポイント</td>
+                            <td>現金化</td>
+                            <td>2,000</td>
+                            <td>1:1</td>
+                            <td>銀行振込</td>
+                            <td>
+                                <button class="button" onclick="editExchange(this)">編集</button>
+                                <button class="button" onclick="deleteExchange(this)">削除</button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+                
+                <div class="card" style="margin-top: 20px;">
+                    <h2>お得な交換レート情報</h2>
+                    <table id="rate-table">
+                        <thead>
+                            <tr>
+                                <th>元ポイント</th>
+                                <th>交換先</th>
+                                <th>通常レート</th>
+                                <th>キャンペーンレート</th>
+                                <th>キャンペーン期間</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>楽天ポイント</td>
+                                <td>Pontaポイント</td>
+                                <td>1:1</td>
+                                <td>1:1.1</td>
+                                <td>2025/03/01～2025/03/31</td>
+                            </tr>
+                            <tr>
+                                <td>dポイント</td>
+                                <td>JALマイル</td>
+                                <td>1:0.5</td>
+                                <td>1:0.7</td>
+                                <td>2025/03/15～2025/04/15</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // タブ切り替え関数
+        function switchTab(tabId) {
+            // すべてのタブコンテンツを非表示
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // すべてのタブを非アクティブ
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // 選択されたタブとそのコンテンツをアクティブ化
+            document.getElementById(tabId).classList.add('active');
+            document.querySelector(`.tab[onclick="switchTab('${tabId}')"]`).classList.add('active');
+        }
+        
+        // 行追加関数
+        function addNewRow() {
+            const table = document.getElementById('points-table').getElementsByTagName('tbody')[0];
+            const newRow = table.insertRow();
+            
+            const today = new Date();
+            const formattedDate = `${today.getFullYear()}/${String(today.getMonth() + 1).padStart(2, '0')}/${String(today.getDate()).padStart(2, '0')}`;
+            
+            newRow.innerHTML = `
+                <td><input type="date" value="${formattedDate.replace(/\//g, '-')}" style="width: 100%;"></td>
+                <td><input type="text" placeholder="サービス名" style="width: 100%;"></td>
+                <td><input type="text" placeholder="獲得方法" style="width: 100%;"></td>
+                <td><input type="number" placeholder="0" style="width: 100%;"></td>
+                <td><input type="text" placeholder="特記事項" style="width: 100%;"></td>
+                <td>
+                    <button class="button" onclick="saveRow(this)">保存</button>
+                    <button class="button" onclick="cancelRow(this)">キャンセル</button>
+                </td>
+            `;
+        }
+        
+        // 行編集関数
+        function editRow(button) {
+            const row = button.parentNode.parentNode;
+            const cells = row.cells;
+            
+            const date = cells[0].innerText;
+            const service = cells[1].innerText;
+            const method = cells[2].innerText;
+            const points = cells[3].innerText;
+            const note = cells[4].innerText;
+            
+            cells[0].innerHTML = `<input type="date" value="${date.replace(/\//g, '-')}" style="width: 100%;">`;
+            cells[1].innerHTML = `<input type="text" value="${service}" style="width: 100%;">`;
+            cells[2].innerHTML = `<input type="text" value="${method}" style="width: 100%;">`;
+            cells[3].innerHTML = `<input type="number" value="${points}" style="width: 100%;">`;
+            cells[4].innerHTML = `<input type="text" value="${note}" style="width: 100%;">`;
+            cells[5].innerHTML = `
+                <button class="button" onclick="saveRow(this)">保存</button>
+                <button class="button" onclick="cancelRow(this)">キャンセル</button>
+            `;
+        }
+        
+        // 行保存関数
+        function saveRow(button) {
+            const row = button.parentNode.parentNode;
+            const cells = row.cells;
+            
+            const dateInput = cells[0].querySelector('input').value;
+            const serviceInput = cells[1].querySelector('input').value;
+            const methodInput = cells[2].querySelector('input').value;
+            const pointsInput = cells[3].querySelector('input').value;
+            const noteInput = cells[4].querySelector('input').value;
+            
+            // 日付フォーマット変換
+            const dateParts = dateInput.split('-');
+            const formattedDate = `${dateParts[0]}/${dateParts[1]}/${dateParts[2]}`;
+            
+            cells[0].innerHTML = formattedDate;
+            cells[1].innerHTML = serviceInput;
+            cells[2].innerHTML = methodInput;
+            cells[3].innerHTML = pointsInput;
+            cells[4].innerHTML = noteInput;
+            cells[5].innerHTML = `
+                <button class="button" onclick="editRow(this)">編集</button>
+                <button class="button" onclick="deleteRow(this)">削除</button>
+            `;
+            
+            // データを保存する処理をここに追加（localStorage等）
+            updateSummary();
+        }
+        
+        // 行キャンセル関数
+        function cancelRow(button) {
+            const row = button.parentNode.parentNode;
+            // 新規行の場合は削除
+            if (!row.getAttribute('data-id')) {
+                row.parentNode.removeChild(row);
+                return;
+            }
+            
+            // 既存の行の場合は元の値に戻す処理（省略）
+        }
+        
+        // 行削除関数
+        function deleteRow(button) {
+            if (confirm('この記録を削除してもよろしいですか？')) {
+                const row = button.parentNode.parentNode;
+                row.parentNode.removeChild(row);
+                updateSummary();
+            }
+        }
+        
+        // 交換記録追加関数
+        function addNewExchange() {
+            const table = document.getElementById('exchange-table').getElementsByTagName('tbody')[0];
+            const newRow = table.insertRow();
+            
+            const today = new Date();
+            const formattedDate = `${today.getFullYear()}/${String(today.getMonth() + 1).padStart(2, '0')}/${String(today.getDate()).padStart(2, '0')}`;
+            
+            newRow.innerHTML = `
+                <td><input type="date" value="${formattedDate.replace(/\//g, '-')}" style="width: 100%;"></td>
+                <td><input type="text" placeholder="サービス名" style="width: 100%;"></td>
+                <td><input type="text" placeholder="交換先" style="width: 100%;"></td>
+                <td><input type="number" placeholder="0" style="width: 100%;"></td>
+                <td><input type="text" placeholder="1:1" style="width: 100%;"></td>
+                <td><input type="text" placeholder="特記事項" style="width: 100%;"></td>
+                <td>
+                    <button class="button" onclick="saveExchange(this)">保存</button>
+                    <button class="button" onclick="cancelExchange(this)">キャンセル</button>
+                </td>
+            `;
+        }
+        
+        // 交換記録編集関数
+        function editExchange(button) {
+            const row = button.parentNode.parentNode;
+            const cells = row.cells;
+            
+            const date = cells[0].innerText;
+            const service = cells[1].innerText;
+            const target = cells[2].innerText;
+            const points = cells[3].innerText;
+            const rate = cells[4].innerText;
+            const note = cells[5].innerText;
+            
+            cells[0].innerHTML = `<input type="date" value="${date.replace(/\//g, '-')}" style="width: 100%;">`;
+            cells[1].innerHTML = `<input type="text" value="${service}" style="width: 100%;">`;
+            cells[2].innerHTML = `<input type="text" value="${target}" style="width: 100%;">`;
+            cells[3].innerHTML = `<input type="number" value="${points.replace(/,/g, '')}" style="width: 100%;">`;
+            cells[4].innerHTML = `<input type="text" value="${rate}" style="width: 100%;">`;
+            cells[5].innerHTML = `<input type="text" value="${note}" style="width: 100%;">`;
+            cells[6].innerHTML = `
+                <button class="button" onclick="saveExchange(this)">保存</button>
+                <button class="button" onclick="cancelExchange(this)">キャンセル</button>
+            `;
+        }
+        
+        // 交換記録保存関数
+        function saveExchange(button) {
+            const row = button.parentNode.parentNode;
+            const cells = row.cells;
+            
+            const dateInput = cells[0].querySelector('input').value;
+            const serviceInput = cells[1].querySelector('input').value;
+            const targetInput = cells[2].querySelector('input').value;
+            const pointsInput = cells[3].querySelector('input').value;
+            const rateInput = cells[4].querySelector('input').value;
+            const noteInput = cells[5].querySelector('input').value;
+            
+            // 日付フォーマット変換
+            const dateParts = dateInput.split('-');
+            const formattedDate = `${dateParts[0]}/${dateParts[1]}/${dateParts[2]}`;
+            
+            // 数値フォーマット
+            const formattedPoints = parseInt(pointsInput).toLocaleString();
+            
+            cells[0].innerHTML = formattedDate;
+            cells[1].innerHTML = serviceInput;
+            cells[2].innerHTML = targetInput;
+            cells[3].innerHTML = formattedPoints;
+            cells[4].innerHTML = rateInput;
+            cells[5].innerHTML = noteInput;
+            cells[6].innerHTML = `
+                <button class="button" onclick="editExchange(this)">編集</button>
+                <button class="button" onclick="deleteExchange(this)">削除</button>
+            `;
+            
+            // データを保存する処理をここに追加（localStorage等）
+            updateSummary();
+        }
+        
+        // 交換記録キャンセル関数
+        function cancelExchange(button) {
+            const row = button.parentNode.parentNode;
+            // 新規行の場合は削除
+            if (!row.getAttribute('data-id')) {
+                row.parentNode.removeChild(row);
+                return;
+            }
+            
+            // 既存の行の場合は元の値に戻す処理（省略）
+        }
+        
+        // 交換記録削除関数
+        function deleteExchange(button) {
+            if (confirm('この交換記録を削除してもよろしいですか？')) {
+                const row = button.parentNode.parentNode;
+                row.parentNode.removeChild(row);
+                updateSummary();
+            }
+        }
+        
+        // サマリー更新関数
+        function updateSummary() {
+            // 実際のデータを集計する処理（省略）
+            // 現在はサンプルデータのまま
+        }
+        
+        // 検索機能
+        document.getElementById('search').addEventListener('keyup', function() {
+            const searchText = this.value.toLowerCase();
+            const table = document.getElementById('points-table');
+            const rows = table.getElementsByTagName('tbody')[0].getElementsByTagName('tr');
+            
+            for (let i = 0; i < rows.length; i++) {
+                const cells = rows[i].getElementsByTagName('td');
+                let found = false;
+                
+                for (let j = 0; j < cells.length - 1; j++) { // 最後の操作列は除外
+                    if (cells[j].textContent.toLowerCase().indexOf(searchText) > -1) {
+                        found = true;
+                        break;
+                    }
+                }
+                
+                rows[i].style.display = found ? '' : 'none';
+            }
+        });
+        
+        // データエクスポート関数
+        function exportData() {
+            alert('データがCSV形式でエクスポートされました（サンプル機能）');
+            // 実際のエクスポート処理をここに追加
+        }
+        
+        // 初期化時の処理
+        function init() {
+            updateSummary();
+        }
+        
+        // ページロード時に初期化
+        window.onload = init;
+    </script>
+</body>
+</html>
